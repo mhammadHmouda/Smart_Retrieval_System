@@ -1,0 +1,64 @@
+# Index settings and schema mappings
+
+PUT reuters
+{
+  "settings": {
+    "analysis": {
+      "filter": {
+        "autocomplete_filter": {
+          "type": "edge_ngram",
+          "min_gram": 1,
+          "max_gram": 20
+        },
+        "english_stop": {
+          "type": "stop",
+          "stopwords": ["_english_"]
+        },
+        "custom_length_filter": {
+          "type": "length",
+          "min": 3
+        }
+      },
+      "analyzer": {
+        "autocomplete": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "autocomplete_filter", "english_stop"]
+        },
+        "content_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "char_filter": ["html_strip"],
+          "filter": ["lowercase", "english_stop", "custom_length_filter", "stemmer"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "id": { "type": "long" },
+      "title": {"type": "text", "analyzer": "autocomplete"},
+      "content": {
+        "type": "text",
+        "analyzer": "content_analyzer",
+        "fields": {"keyword": {"type": "keyword"}}
+      },
+      "authors": {
+        "type": "nested",
+        "properties": {
+          "first_name": {"type": "text"},
+          "last_name": {"type": "text"},
+          "email": {"type": "keyword"}
+        }
+      },
+      "status": {"type": "keyword"},
+      "date": {
+        "type": "date",
+        "format": "epoch_millis"
+      },
+      "geoPoint": {"type": "geo_point"},
+      "temporalExpressions": {"type": "text"},
+      "geoReferences": {"type": "text"}
+    }
+  }
+}

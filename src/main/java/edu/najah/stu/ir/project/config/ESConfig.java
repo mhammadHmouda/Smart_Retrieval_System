@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Configuration;
 import javax.net.ssl.SSLContext;
 
 @Configuration
-public class ElasticSearchConfig {
+public class ESConfig {
 
     @Value("${es.url}")
     private String baseUrl;
