@@ -14,6 +14,12 @@ public class ESController {
 
     private final ESService service;
 
+    @PostMapping("/load")
+    public ResponseEntity<?> loadDocuments() {
+        service.loadDocumentToIndex();
+        return ResponseEntity.ok("Documents loaded successfully!");
+    }
+
     @DeleteMapping
     public ResponseEntity<?> deleteIndex() {
         String result = service.deleteIndex();
@@ -36,5 +42,11 @@ public class ESController {
     public ResponseEntity<?> findAll() {
         List<ReuterDocument> persons = service.findAll();
         return  ResponseEntity.ok(persons);
+    }
+
+    @GetMapping("/docs/{id}")
+    public ResponseEntity<?> findById(@PathVariable int id) {
+        ReuterDocument document = service.findDocumentById(id);
+        return  ResponseEntity.ok(document);
     }
 }
