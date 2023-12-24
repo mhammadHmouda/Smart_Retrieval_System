@@ -1,0 +1,35 @@
+1- Providing an autocomplete service to return a list of top-10 documents based on
+their titles. The system should start suggesting titles after the 3rd
+typed character. Take into consideration that the user might write some misspelled words
+
+GET reuters/_search
+{
+  "query": {
+    "match": {
+      "title": "elastic"
+    }
+  }
+}
+
+
+3- Return the top-10 mentioned geo-references across the entire index:
+
+GET /reuters_index/_search
+{
+  "size": 0,
+  "aggs": {
+    "top_geo_references": {
+      "nested": {
+        "path": "geo_references"
+      },
+      "aggs": {
+        "geo_reference_terms": {
+          "terms": {
+            "field": "geo_references.reference",
+            "size": 10
+          }
+        }
+      }
+    }
+  }
+}

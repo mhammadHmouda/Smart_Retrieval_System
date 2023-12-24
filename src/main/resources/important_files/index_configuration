@@ -1,0 +1,66 @@
+PUT /reuters_index
+{
+  "settings": {
+    "analysis": {
+      "filter": {
+        "autocomplete": {
+          "type": "edge_ngram",
+          "min_gram": 3,
+          "max_gram": 12
+        },
+        "length": {
+          "type": "length",
+          "min": 3
+        },
+        "stop_words": {
+          "type": "stop",
+          "stopwords": "_english_"
+        }
+      },
+      "analyzer": {
+        "autocomplete_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "autocomplete"]
+        },
+        "content_analyzer": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "stemmer", "stop_words", "length"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "title": {
+        "type": "text",
+        "analyzer": "autocomplete_analyzer"
+      },
+      "content": {
+        "type": "text",
+        "analyzer": "content_analyzer"
+      },
+      "authors": {
+        "type": "nested",
+        "properties": {
+          "first_name": {"type": "text"},
+          "last_name": {"type": "text"}
+        }
+      },
+      "publication_date": {
+        "type": "date",
+        "format": "epoch_millis"
+      },
+      "geo_point": {"type": "geo_point"},
+      "temporal_expressions": {
+        "type": "nested",
+        "properties": {"expression": {"type": "keyword"}}
+      },
+      "geo_references": {
+        "type": "nested",
+        "properties": {"reference": {"type": "keyword"}}
+      }
+    }
+  }
+}

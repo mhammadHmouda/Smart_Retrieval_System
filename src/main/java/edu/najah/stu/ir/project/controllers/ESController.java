@@ -1,5 +1,6 @@
 package edu.najah.stu.ir.project.controllers;
 
+import co.elastic.clients.json.JsonData;
 import edu.najah.stu.ir.project.models.ReuterDocument;
 import edu.najah.stu.ir.project.services.ESService;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +43,12 @@ public class ESController {
     public ResponseEntity<?> findAll() {
         List<ReuterDocument> persons = service.findAll();
         return  ResponseEntity.ok(persons);
+    }
+
+    @GetMapping("/docs/query")
+    public ResponseEntity<?> findByTitle(@RequestParam String title) {
+        List<String> documents = service.findByTitle(title);
+        return ResponseEntity.ok(documents);
     }
 
     @GetMapping("/docs/{id}")

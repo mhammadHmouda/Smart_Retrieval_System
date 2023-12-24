@@ -1,15 +1,22 @@
 package edu.najah.stu.ir.project.services;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.query_dsl.MatchQuery;
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch._types.query_dsl.QueryBuilders;
 import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.BulkResponse;
+import co.elastic.clients.elasticsearch.core.search.Hit;
+import co.elastic.clients.json.JsonData;
 import edu.najah.stu.ir.project.models.ReuterDocument;
 import edu.najah.stu.ir.project.utils.ReuterUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 
@@ -19,27 +26,48 @@ public class ESService {
 
     @Value("${es.index.name}")
     private String indexName;
-    private int operationCount = 0;
 
     private final ElasticsearchClient es;
 
     private final ReuterUtils reuterUtils;
 
-    public String deleteIndex() {
+    public List<String> findByTitle(String title) {
         try {
-            es.indices().delete(c -> c.index(indexName));
-            return "Index deleted successfully!";
+            var response = es.search(s -> s.index(indexName)
+                    .query(q -> q.match(b -> b.field("title").query(title).fuzziness("1")
+                    )).size(10), ReuterDocument.class);
+
+            return response.hits().hits()
+                    .stream().map(hit -> {
+                        assert hit.source() != null;
+                        return hit.source().getTitle();
+                    }).toList();
         } catch (Exception e) {
-            return e.getMessage();
+            e.printStackTrace();
+            return Collections.emptyList();
         }
     }
 
     public void loadDocumentToIndex() {
+        Instant start = Instant.now();
         try {
-            List<ReuterDocument> documents = reuterUtils.readReuters();
+            List<File> sgmFiles = getSGMFiles();
 
-            int batchSize = 50;
+            for (File sgmFile : sgmFiles) {
+                List<ReuterDocument> documents = reuterUtils.processFile(sgmFile);
+                createAndExecuteBulkRequest(documents);
+            }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
 
+        Instant finish = Instant.now();
+        long timeElapsed = Duration.between(start, finish).toSeconds();
+        System.out.println("Time elapsed: " + timeElapsed + " seconds");
+    }
+
+    private void createAndExecuteBulkRequest(List<ReuterDocument> documents) {
+        try {
             BulkRequest.Builder br = new BulkRequest.Builder();
 
             for (ReuterDocument reuter : documents) {
@@ -47,14 +75,6 @@ public class ESService {
                         .index(indexName)
                         .id(String.valueOf(reuter.getId()))
                         .document(reuter)));
-
-                operationCount++;
-
-                if (operationCount == batchSize) {
-                    executeBulkRequest(br);
-                    operationCount = 0;
-                    br = new BulkRequest.Builder();
-                }
             }
 
             executeBulkRequest(br);
@@ -63,15 +83,33 @@ public class ESService {
         }
     }
 
-    private void executeBulkRequest(BulkRequest.Builder br) throws IOException {
-        if (operationCount > 0) {
-            BulkResponse result = es.bulk(br.build());
+    private List<File> getSGMFiles() throws Exception {
+        File folder = new File("src/main/resources/data");
+        File[] sgmFiles = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".sgm"));
 
-            if (result.errors()) {
-                System.err.println("Bulk request failed: ");
-            } else {
-                System.out.println("Bulk request successful");
-            }
+        if (sgmFiles == null || sgmFiles.length == 0) {
+            throw new Exception("No .sgm files found in the specified folder.");
+        }
+
+        return List.of(sgmFiles);
+    }
+
+    private void executeBulkRequest(BulkRequest.Builder br) throws IOException {
+        BulkResponse result = es.bulk(br.build());
+
+        if (result.errors()) {
+            System.err.println("Bulk request failed: ");
+        } else {
+            System.out.println("Bulk request successful");
+        }
+    }
+
+    public String deleteIndex() {
+        try {
+            es.indices().delete(c -> c.index(indexName));
+            return "Index deleted successfully!";
+        } catch (Exception e) {
+            return e.getMessage();
         }
     }
 
@@ -86,13 +124,6 @@ public class ESService {
 
     public List<ReuterDocument> findAll() {
         try {
-//            Query byName = MatchQuery.of(m -> m.field("title").query("Hmouda"))._toQuery();
-//            Query byId = MatchQuery.of(m -> m.field("id").query("2"))._toQuery();
-//
-//            var res = es.search(s -> s.index(indexName).query(q -> q.bool(b -> b.must(byName).must(byId))), ReuterDocument.class);
-//            System.out.println(res.hits().hits().stream().map(Hit::source).toList().get(0));
-
-
             var response = es.search(s -> s.index(indexName)
                     .query(q -> q.matchAll(QueryBuilders.matchAll().build()))
                     .size(20), ReuterDocument.class);

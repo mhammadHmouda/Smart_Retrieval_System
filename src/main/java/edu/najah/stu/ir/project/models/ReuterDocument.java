@@ -1,10 +1,9 @@
 package edu.najah.stu.ir.project.models;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.Date;
 import java.util.List;
 
 @Data
@@ -12,13 +11,24 @@ import java.util.List;
 @AllArgsConstructor
 public class ReuterDocument {
     private long id;
+
     private String title;
+
     private String content;
+
     private String status;
-    private String date;
-    private long epoch;
+
+    @JsonProperty("geo_point")
     private GeoPoint geoPoint;
+
+    @JsonProperty("publication_date")
+    private long epochDate;
+
     private List<Author> authors;
-    private List<String> temporalExpressions;
-    private List<String> geoReferences;
+
+    @JsonProperty("temporal_expressions")
+    private List<TemporalExpression> temporalExpressions;
+
+    @JsonProperty("geo_references")
+    private List<GeoReference> geoReferences;
 }
