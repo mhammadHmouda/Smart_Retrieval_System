@@ -1,13 +1,13 @@
 package edu.najah.stu.ir.project.services;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch._types.query_dsl.MatchQuery;
-import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch._types.aggregations.NestedAggregate;
+import co.elastic.clients.elasticsearch._types.aggregations.StringTermsAggregate;
 import co.elastic.clients.elasticsearch._types.query_dsl.QueryBuilders;
 import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.BulkResponse;
-import co.elastic.clients.elasticsearch.core.search.Hit;
-import co.elastic.clients.json.JsonData;
+import edu.najah.stu.ir.project.models.DateAggResponse;
+import edu.najah.stu.ir.project.models.GeoRefResponse;
 import edu.najah.stu.ir.project.models.ReuterDocument;
 import edu.najah.stu.ir.project.utils.ReuterUtils;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +42,46 @@ public class ESService {
                         assert hit.source() != null;
                         return hit.source().getTitle();
                     }).toList();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Collections.emptyList();
+        }
+    }
+
+    public List<GeoRefResponse> findTop10GeoReferences() {
+        try {
+            var response = es.search(s -> s.index(indexName).size(0).aggregations("geo_references", ag ->
+                            ag.nested(nes -> nes.path("geo_references")).aggregations("geo_references", ag2 ->
+                                    ag2.terms(t -> t.field("geo_references.reference.keyword").size(10)))),
+                    Void.class);
+
+            NestedAggregate nestedAgg = response.aggregations().get("geo_references").nested();
+            StringTermsAggregate termsAgg = nestedAgg.aggregations().get("geo_references").sterms();
+
+            return termsAgg.buckets().array().stream()
+                    .map(bucket -> new GeoRefResponse(bucket.key().stringValue(), bucket.docCount()))
+                    .toList();
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            return Collections.emptyList();
+        }
+    }
+
+
+    public List<DateAggResponse> findDistributionOverTime(){
+        try {
+            var response = es.search(s -> s.index(indexName).aggregations("dates", ag ->
+                    ag.dateHistogram(t ->
+                            t.field("publication_date")
+                            .fixedInterval(f -> f.time("1d"))
+                            .format("yyyy-MM-dd").minDocCount(1)))
+                    , Void.class);
+
+            return response.aggregations().get("dates")
+                    .dateHistogram().buckets().array().stream()
+                    .map(bucket -> new DateAggResponse(bucket.keyAsString(), bucket.docCount()))
+                    .toList();
         } catch (Exception e) {
             e.printStackTrace();
             return Collections.emptyList();
@@ -98,7 +138,7 @@ public class ESService {
         BulkResponse result = es.bulk(br.build());
 
         if (result.errors()) {
-            System.err.println("Bulk request failed: ");
+            throw new IOException("Bulk request failed.");
         } else {
             System.out.println("Bulk request successful");
         }

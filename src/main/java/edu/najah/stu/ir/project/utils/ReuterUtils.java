@@ -17,7 +17,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+
 
 @Configuration
 @RequiredArgsConstructor
@@ -38,10 +38,8 @@ public class ReuterUtils {
             String sgmContent = scanner.useDelimiter("\\A").next();
             Document xmlDoc = Jsoup.parse(sgmContent, "", Parser.xmlParser());
 
-            int i = 0;
             Elements reutersElements = xmlDoc.select("REUTERS");
             for (Element reutersElement : reutersElements) {
-                i++;
 
                 ReuterDocument reuterDocument = processReutersElement(reutersElement);
 
@@ -75,8 +73,8 @@ public class ReuterUtils {
 
         Element dateElement = reutersElement.selectFirst("DATE");
         String dateText = dateElement != null ? dateElement.text() : "N/A";
-        Date date = getDate(dateText);
-        long epoch = date.getTime() / 1000;
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+        String formattedDate = sdf.format(getDate(dateText));
 
         List<TemporalExpression> temporalExpressions = geoAndTemporalExtraction.extractTemporalExpression(bodyText);
         List<GeoReference> geoReferencesFromText = geoAndTemporalExtraction.extractGeoReferences(bodyText);
@@ -96,7 +94,7 @@ public class ReuterUtils {
         ReuterDocument reuterDocument = new ReuterDocument();
         reuterDocument.setTitle(titleText);
         reuterDocument.setContent(bodyText);
-        reuterDocument.setEpochDate(epoch);
+        reuterDocument.setDate(formattedDate);
         reuterDocument.setAuthors(authors);
         reuterDocument.setGeoPoint(geoPoint);
         reuterDocument.setTemporalExpressions(temporalExpressions);
@@ -109,7 +107,7 @@ public class ReuterUtils {
         return Arrays.stream(placesText.split("\\s+"))
                 .filter(s -> !s.isEmpty())
                 .map(GeoReference::new)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private Date getDate(String dateString) throws Exception {

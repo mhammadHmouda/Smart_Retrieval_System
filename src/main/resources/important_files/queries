@@ -2,11 +2,51 @@
 their titles. The system should start suggesting titles after the 3rd
 typed character. Take into consideration that the user might write some misspelled words
 
-GET reuters/_search
+GET reuters_index/_search
 {
   "query": {
     "match": {
-      "title": "elastic"
+      "title": {
+        "query": "aggressive",
+        "fuzziness": 1
+      }
+    }
+  }
+}
+
+2- Retrieving relevant documents by considering both title and content, with greater
+   emphasis placed on the title. Also, take into consideration the recency and
+   localization factors while ranking the results. Note that the query from the user is
+   represented as a tuple (query, temporal expression, georeference)
+
+GET reuters_index/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "multi_match": {
+            "query": "aggressive",
+            "fields": [
+              "title^2",
+              "content"
+            ]
+          }
+        }
+      ],
+      "filter": [
+        {
+          "range": {
+            "date": {
+              "gte": "2019-01-01",
+              "lte": "2019-12-31"
+            }
+          }
+        },
+        {
+          "match": { "geo_references.reference": "United States" }
+        }
+      ]
     }
   }
 }
@@ -14,21 +54,32 @@ GET reuters/_search
 
 3- Return the top-10 mentioned geo-references across the entire index:
 
-GET /reuters_index/_search
+GET reuters_index/_search
 {
   "size": 0,
   "aggs": {
     "top_geo_references": {
-      "nested": {
-        "path": "geo_references"
-      },
-      "aggs": {
-        "geo_reference_terms": {
-          "terms": {
-            "field": "geo_references.reference",
-            "size": 10
-          }
-        }
+      "terms": {
+        "field": "geo_references.reference",
+        "size": 10
+      }
+    }
+  }
+}
+
+
+4- Return the distribution of documents over time, with a time aggregation of 1 day:
+
+GET reuters_index/_search
+{
+  "size": 0,
+  "aggs": {
+    "documents_over_time": {
+      "date_histogram": {
+        "field": "date",
+        "fixed_interval": "1d",
+        "format": "yyyy-MM-dd",
+        "min_doc_count": 1
       }
     }
   }

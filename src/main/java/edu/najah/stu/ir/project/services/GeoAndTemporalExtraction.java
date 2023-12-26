@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 
+
 @Service
 public class GeoAndTemporalExtraction {
     private TokenNameFinderModel locationModel;
@@ -54,7 +55,6 @@ public class GeoAndTemporalExtraction {
 
         return temporalExpressions;
     }
-
     private List<String> extract(TokenNameFinderModel model, String text) {
         NameFinderME finder = new NameFinderME(model);
         Tokenizer tokenizer = SimpleTokenizer.INSTANCE;

@@ -1,11 +1,11 @@
 package edu.najah.stu.ir.project.controllers;
 
-import co.elastic.clients.json.JsonData;
 import edu.najah.stu.ir.project.models.ReuterDocument;
 import edu.najah.stu.ir.project.services.ESService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController()
@@ -14,6 +14,16 @@ import java.util.List;
 public class ESController {
 
     private final ESService service;
+
+    @GetMapping("/docs/query/geo")
+    public ResponseEntity<?> findTop10GeoReferences() {
+        return ResponseEntity.ok(service.findTop10GeoReferences());
+    }
+
+    @GetMapping("/docs/query/time")
+    public ResponseEntity<?> findDistributionOverTime() {
+        return ResponseEntity.ok(service.findDistributionOverTime());
+    }
 
     @PostMapping("/load")
     public ResponseEntity<?> loadDocuments() {
@@ -33,7 +43,7 @@ public class ESController {
         return ResponseEntity.ok(id);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/docs/{id}")
     public ResponseEntity<?> deleteDocumentById(@PathVariable String id){
         String deletedId = service.deleteById(id);
         return ResponseEntity.ok("Document with id: ( " + deletedId + " ) deleted successfully!");
@@ -51,7 +61,7 @@ public class ESController {
         return ResponseEntity.ok(documents);
     }
 
-    @GetMapping("/docs/{id}")
+    @GetMapping("/docs/query/{id}")
     public ResponseEntity<?> findById(@PathVariable int id) {
         ReuterDocument document = service.findDocumentById(id);
         return  ResponseEntity.ok(document);

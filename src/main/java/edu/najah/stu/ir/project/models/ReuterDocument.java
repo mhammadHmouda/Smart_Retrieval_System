@@ -22,7 +22,7 @@ public class ReuterDocument {
     private GeoPoint geoPoint;
 
     @JsonProperty("publication_date")
-    private long epochDate;
+    private String date;
 
     private List<Author> authors;
 

@@ -44,22 +44,25 @@ PUT /reuters_index
       "authors": {
         "type": "nested",
         "properties": {
-          "first_name": {"type": "text"},
-          "last_name": {"type": "text"}
+          "first_name": { "type": "text" },
+          "last_name": { "type": "text" }
         }
       },
-      "publication_date": {
-        "type": "date",
-        "format": "epoch_millis"
+      "date": {
+        "type": "date"
       },
-      "geo_point": {"type": "geo_point"},
+      "geo_point": { "type": "geo_point" },
       "temporal_expressions": {
-        "type": "nested",
-        "properties": {"expression": {"type": "keyword"}}
+        "type": "text",
+        "fields": {
+          "expression": { "type": "keyword" }
+        }
       },
       "geo_references": {
-        "type": "nested",
-        "properties": {"reference": {"type": "keyword"}}
+        "type": "text",
+        "fields": {
+          "reference": { "type": "keyword" }
+        }
       }
     }
   }
