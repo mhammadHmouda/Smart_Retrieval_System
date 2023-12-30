@@ -9,6 +9,7 @@ import opennlp.tools.namefind.TokenNameFinderModel;
 import opennlp.tools.tokenize.SimpleTokenizer;
 import opennlp.tools.tokenize.Tokenizer;
 import opennlp.tools.util.Span;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -18,16 +19,25 @@ import java.util.*;
 
 @Service
 public class GeoAndTemporalExtraction {
+    private final String api;
+    private final Map<String, GeoPoint> cache;
     private TokenNameFinderModel locationModel;
     private TokenNameFinderModel dateModel;
-    private static final Map<String, GeoPoint> cache = new HashMap<>();
 
-    public GeoAndTemporalExtraction() {
+
+    public GeoAndTemporalExtraction(
+            @Value("${geo.api.url}") String apiUrl,
+            @Value("${places.model.path}") String placeModel,
+            @Value("${temporal.model.path}") String temporalModel) {
+
+        cache = new HashMap<>();
+        api = apiUrl;
+
         try {
-            InputStream locationModelIn = new FileInputStream("src/main/resources/models/en-ner-location.bin");
+            InputStream locationModelIn = new FileInputStream(placeModel);
             locationModel = new TokenNameFinderModel(locationModelIn);
 
-            InputStream dateModelIn = new FileInputStream("src/main/resources/models/en-ner-date.bin");
+            InputStream dateModelIn = new FileInputStream(temporalModel);
             dateModel = new TokenNameFinderModel(dateModelIn);
         } catch (IOException e) {
             System.out.println(e.getMessage());
@@ -86,10 +96,9 @@ public class GeoAndTemporalExtraction {
                     return cache.get(address);
                 }
 
-                String apiUrl = "https://nominatim.openstreetmap.org/search?format=json&q="
-                        + address.replaceAll("\\s+", "%20");
+                String geoPointApi = api + address.replaceAll("\\s+", "%20");
 
-                var response = Unirest.get(apiUrl).header("accept", "application/json").asJson();
+                var response = Unirest.get(geoPointApi).header("accept", "application/json").asJson();
 
                 if (response.getStatus() == 200) {
                     var result = response.getBody().getArray().getJSONObject(0);

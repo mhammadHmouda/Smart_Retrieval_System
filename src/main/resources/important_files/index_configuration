@@ -1,4 +1,4 @@
-PUT /reuters_index
+PUT /reuters
 {
   "settings": {
     "analysis": {
@@ -44,24 +44,36 @@ PUT /reuters_index
       "authors": {
         "type": "nested",
         "properties": {
-          "first_name": { "type": "text" },
-          "last_name": { "type": "text" }
+          "first_name": {
+            "type": "text"
+          },
+          "last_name": {
+            "type": "text"
+          }
         }
       },
-      "date": {
+      "publication_date": {
         "type": "date"
       },
-      "geo_point": { "type": "geo_point" },
+      "geo_point": {
+        "type": "geo_point"
+      },
       "temporal_expressions": {
-        "type": "text",
-        "fields": {
-          "expression": { "type": "keyword" }
+        "type": "nested",
+        "properties": {
+          "expression": {
+            "type": "text",
+            "fields": { "keyword": { "type": "keyword" }}
+          }
         }
       },
       "geo_references": {
-        "type": "text",
-        "fields": {
-          "reference": { "type": "keyword" }
+        "type": "nested",
+        "properties": {
+          "reference": {
+            "type": "text",
+            "fields": { "keyword": { "type": "keyword" }}
+          }
         }
       }
     }
