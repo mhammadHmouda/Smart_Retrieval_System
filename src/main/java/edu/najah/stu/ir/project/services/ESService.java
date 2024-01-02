@@ -1,13 +1,18 @@
 package edu.najah.stu.ir.project.services;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch._types.aggregations.NestedAggregate;
+import co.elastic.clients.elasticsearch._types.SortOptions;
+import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.aggregations.StringTermsAggregate;
+import co.elastic.clients.elasticsearch._types.query_dsl.FunctionBoostMode;
+import co.elastic.clients.elasticsearch._types.query_dsl.FunctionScore;
+import co.elastic.clients.elasticsearch._types.query_dsl.FunctionScoreMode;
 import co.elastic.clients.elasticsearch._types.query_dsl.QueryBuilders;
 import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.BulkResponse;
 import edu.najah.stu.ir.project.models.DateAggResponse;
 import edu.najah.stu.ir.project.models.GeoRefResponse;
+import edu.najah.stu.ir.project.models.MultipleFactor;
 import edu.najah.stu.ir.project.models.ReuterDocument;
 import edu.najah.stu.ir.project.utils.ReuterUtils;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +55,34 @@ public class ESService {
         }
     }
 
+    public List<ReuterDocument> findByMultipleFactor(MultipleFactor factors) {
+        try {
+            var response = es.search(s -> s.index(indexName)
+                            .query(q -> q.bool(b -> b.must(m -> m.functionScore(f -> f
+                                    .query(q2 -> q2.multiMatch(b2 -> b2.fields(List.of("title^3", "content")).query(factors.query())))
+                                    .functions(List.of(
+                                            FunctionScore.of(f2 -> f2.filter(f3 -> f3.nested(n -> n.path("geo_references")
+                                                    .query(q3 -> q3.match(t -> t.field("geo_references.reference")
+                                                            .query(factors.geoReference()))))).weight(3d)),
+
+                                            FunctionScore.of(f3 -> f3.filter(f4 -> f4.nested(n2 -> n2.path("temporal_expressions")
+                                                    .query(q4 -> q4.matchPhrasePrefix(t2 -> t2.field("temporal_expressions.expression")
+                                                            .query(factors.temporalExpression()))))).weight(2d)))
+                                    )
+                                    .scoreMode(FunctionScoreMode.Sum)
+                                    .boostMode(FunctionBoostMode.Sum)
+                            ))))
+                            .sort(List.of(SortOptions.of(s2 -> s2.field(f -> f.field("_score").order(SortOrder.Desc))),
+                                    SortOptions.of(s2 -> s2.field(f -> f.field("publication_date").order(SortOrder.Desc)))))
+                    , ReuterDocument.class);
+
+            return reuterUtils.mapToReuters(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Collections.emptyList();
+        }
+    }
+
     public List<GeoRefResponse> findTop10GeoReferences() {
         try {
             var response = es.search(s -> s.index(indexName).size(0)
@@ -58,8 +91,8 @@ public class ESService {
                                             ag2 -> ag2.terms(t -> t.field("geo_references.reference.keyword")
                                                     .size(10)))), Void.class);
 
-            NestedAggregate nestedAgg = response.aggregations().get("geo_references").nested();
-            StringTermsAggregate termsAgg = nestedAgg.aggregations().get("geo_references").sterms();
+            StringTermsAggregate termsAgg = response.aggregations().get("geo_references")
+                    .nested().aggregations().get("geo_references").sterms();
 
             return termsAgg.buckets().array().stream()
                     .map(bucket -> new GeoRefResponse(bucket.key().stringValue(), bucket.docCount()))

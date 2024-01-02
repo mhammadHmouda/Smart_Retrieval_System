@@ -1,3 +1,5 @@
+- Index settings and mappings for Reuters dataset
+
 PUT /reuters
 {
   "settings": {
@@ -78,4 +80,22 @@ PUT /reuters
       }
     }
   }
+}
+
+
+- If you want to see how the autocomplete analyzer works, you can use the _analyze endpoint and pass the title as a text:
+
+POST /reuters/_analyze
+{
+  "analyzer": "autocomplete_analyzer",
+  "text": "Exploring the main activities."
+}
+
+
+- If you want to see how the content analyzer works, you can use the _analyze endpoint and pass the content as a text:
+
+POST /reuters/_analyze
+{
+  "analyzer": "content_analyzer",
+  "text": "This is a content of document to exploring the main activities."
 }

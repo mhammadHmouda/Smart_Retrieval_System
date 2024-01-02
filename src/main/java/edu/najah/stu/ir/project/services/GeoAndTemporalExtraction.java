@@ -72,7 +72,7 @@ public class GeoAndTemporalExtraction {
         Span[] spans = finder.find(tokens);
 
         if (spans.length == 0) {
-            return new ArrayList<>();
+            return Collections.emptyList();
         }
 
         List<String> expressions = new ArrayList<>();

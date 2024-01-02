@@ -55,7 +55,7 @@ GET /reuters/_search
                     "path": "temporal_expressions",
                     "query": {
                       "match_phrase_prefix": {
-                        "temporal_expressions.expression": "*last*"
+                        "temporal_expressions.expression": "last*"
                       }
                     }
                   }
