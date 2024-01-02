@@ -13,3 +13,5 @@ target/
 *.ipr
 
 .idea/
+
+application.properties

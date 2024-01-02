@@ -1,0 +1,138 @@
+1- Providing an autocomplete service to return a list of top-10 documents based on
+their titles. The system should start suggesting titles after the 3rd
+typed character. Take into consideration that the user might write some misspelled words
+
+GET reuters/_search
+{
+  "query": {
+    "match": {
+      "title": "aggressive"
+    }
+  }
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+2- Retrieving relevant documents by considering both title and content, with greater
+   emphasis placed on the title. Also, take into consideration the recency and
+   localization factors while ranking the results. Note that the query from the user is
+   represented as a tuple (query, temporal expression, georeference)
+
+GET /reuters/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "function_score": {
+            "query": {
+              "multi_match": {
+                "query": "review",
+                "fields": ["title^3", "content"]
+              }
+            },
+            "functions": [
+              {
+                "filter": {
+                  "nested": {
+                    "path": "geo_references",
+                    "query": {
+                      "match": {
+                        "geo_references.reference": "Hong Kong"
+                      }
+                    }
+                  }
+                },
+                "weight": 3
+              },
+              {
+                "filter": {
+                  "nested": {
+                    "path": "temporal_expressions",
+                    "query": {
+                      "match_phrase_prefix": {
+                        "temporal_expressions.expression": "last*"
+                      }
+                    }
+                  }
+                },
+                "weight": 2
+              }
+            ],
+            "score_mode": "sum",
+            "boost_mode": "sum"
+          }
+        }
+      ]
+    }
+  },
+  "sort": [
+    {
+      "_score": {
+        "order": "desc"
+      }
+    },
+    {
+      "publication_date": {
+        "order": "desc"
+      }
+    }
+  ]
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+3- Return the top-10 mentioned geo-references across the entire index:
+
+GET reuters/_search
+{
+  "size": 0,
+  "aggs": {
+    "aggs_geo_references": {
+      "nested": {
+        "path": "geo_references"
+      },
+      "aggs": {
+        "test": {
+          "terms": {
+            "field": "geo_references.reference.keyword",
+            "size": 10
+          }
+        }
+      }
+    }
+  }
+}
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+4- Return the distribution of documents over time, with a time aggregation of 1 day:
+
+GET reuters/_search
+{
+  "size": 0,
+  "aggs": {
+    "documents_over_time": {
+      "date_histogram": {
+        "field": "date",
+        "fixed_interval": "1d",
+        "format": "yyyy-MM-dd",
+        "min_doc_count": 1
+      }
+    }
+  }
+}
